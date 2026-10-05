@@ -1,116 +1,40 @@
-[SEC_Pipeline_README.md](https://github.com/user-attachments/files/31244701/SEC_Pipeline_README.md)
-# SEC Financials Pipeline
+# Restaurant Brands International (NYSE: QSR): Leveraged Buyout Model
 
-A command-line tool that pulls standardized financial statements for any public
-company straight from the **SEC EDGAR XBRL API**, loads them into a local
-**SQLite** database, computes credit and profitability **metrics**, and exports
-a formatted **Excel** workbook.
+**File:** `QSR_LBO_Model.xlsx`
 
-It automates the manual data-gathering behind fundamental analysis: instead of
-opening a 10-K and keying revenue, EBITDA, debt, and cash into a spreadsheet
-company by company, you run one command and get a clean, queryable dataset.
+An illustrative five-year leveraged buyout of Restaurant Brands International, the franchisor behind Burger King, Tim Hortons, Popeyes, and Firehouse Subs. Entry revenue and adjusted EBITDA are anchored to approximate FY2024 reported figures. All drivers live on one Assumptions tab, and every other cell is formula-driven.
 
-```
-tickers ──► EDGAR API ──► parse & normalize ──► SQLite ──► metrics ──► Excel
-```
+## Transaction
 
-## Why it exists
+| | |
+|---|---|
+| Entry adjusted EBITDA | ~$2.8B |
+| Entry multiple | 13.0x EV / EBITDA |
+| Entry enterprise value | $36.4B |
+| New debt (Term Loan B + Senior Notes) | $16.8B (6.0x EBITDA) |
+| Sponsor equity | $20.3B (55% of sources) |
 
-Every filer tags the same line item differently in XBRL (Apple files revenue as
-`RevenueFromContractWithCustomerExcludingAssessedTax`; other companies use
-`Revenues` or `SalesRevenueNet`), and every tag mixes annual, quarterly, and
-restated datapoints. This tool resolves all of that into one tidy table per
-company, so the analysis starts from clean inputs.
+## Model structure
 
-## Install
+| Tab | What it does |
+|---|---|
+| Assumptions | Transaction terms, Sources & Uses, debt terms, operating drivers, exit assumptions |
+| Model | Five-year operating build, free cash flow, and a tranched debt schedule (Term Loan B with 1% mandatory amortization and a 75% cash sweep, Senior Notes, and a revolver) |
+| Returns | Exit valuation, equity value, MOIC and IRR, and a returns bridge splitting value creation into EBITDA growth and multiple change |
+| Summary | Key outputs and entry-by-exit multiple sensitivity tables for IRR and MOIC |
 
-```bash
-pip install -r requirements.txt        # requests, openpyxl
-```
+## Base-case results
 
-## Usage
+- **MOIC:** 1.75x
+- **IRR (5-year):** 11.9%
+- **Exit multiple:** 12.0x (0.5x contraction from entry)
+- **Deleveraging:** total debt / EBITDA falls from 6.0x at entry to about 3.0x by Year 5
 
-**Live** (needs internet; the SEC requires a contact email in the User-Agent):
-
-```bash
-python sec_pipeline.py AAPL MSFT NVDA --email you@example.com \
-    --db output/financials.db --excel output/financials.xlsx
-```
-
-**Offline** (no network — parse a company-facts JSON already on disk; used by
-the test suite and for a quick demo):
-
-```bash
-python sec_pipeline.py --sample sec_financials/sample_data/AAPL_companyfacts_sample.json \
-    --db output/financials.db --excel output/financials.xlsx
-```
-
-Responses are cached under `.edgar_cache/`, so re-runs don't re-hit the API.
-
-## What you get
-
-**SQLite** — three tidy tables (`companies`, `financials`, `metrics`) built for
-ad-hoc SQL:
-
-```sql
-SELECT c.ticker, m.fiscal_year, m.value AS net_debt_to_ebitda
-FROM metrics m JOIN companies c USING (cik)
-WHERE m.metric = 'net_debt_to_ebitda'
-ORDER BY c.ticker, m.fiscal_year;
-```
-
-**Excel** — one sheet per company: line items on top, derived metrics below,
-fiscal years across the columns, values in $mm.
-
-## Line items pulled
-
-Revenue, cost of revenue, gross profit, operating income, net income, D&A, cash
-flow from operations, capex, total/current assets, total/current liabilities,
-stockholders' equity, cash, and short-/long-term debt.
-
-## Metrics computed
-
-Revenue growth (YoY), gross / operating / net margin, EBITDA and EBITDA margin,
-current ratio, net debt, **net debt / EBITDA**, return on equity, free cash flow
-(CFO − capex), and FCF margin. Each guards against missing inputs and zero
-denominators, returning blanks rather than erroring.
+The sensitivity tables show how much the return depends on price: buying at 11.0x instead of 13.0x, with the same 12.0x exit, lifts the IRR to about 19%.
 
 ## Design notes
 
-- **Tag fallbacks** — each canonical concept lists its candidate XBRL tags in
-  priority order (`sec_financials/concepts.py`); the parser takes the first that
-  has data.
-- **Annual-only** — keeps `form=10-K`, `fp=FY` datapoints, and for flow items
-  additionally checks the period spans ~a full year, which filters out Q4 rows
-  some filers mis-tag as `FY`.
-- **Restatement handling** — when a fiscal year appears in more than one filing,
-  the most recently filed value wins.
-- **Polite API use** — descriptive User-Agent with contact email and request
-  throttling per SEC fair-access guidance. No API key required; data is public.
+- Interest is calculated on beginning-of-period balances, so the model has no circular references.
+- Sensitivity tables hold Year-5 EBITDA, net debt, new debt, and fees constant and flex only the entry and exit multiples.
 
-## Project layout
-
-```
-sec_pipeline.py              CLI entry point / orchestration
-sec_financials/
-    concepts.py              canonical concepts + XBRL tag fallbacks
-    edgar.py                 EDGAR client (ticker->CIK, company facts, caching)
-    parse.py                 raw facts -> per-fiscal-year table
-    metrics.py               ratios & credit stats
-    store.py                 SQLite schema + writes
-    exporter.py              formatted Excel export
-    sample_data/             bundled Apple sample for offline runs
-tests/
-    test_pipeline.py         offline tests (parsing, filters, metric math, SQLite)
-```
-
-## Tests
-
-```bash
-python tests/test_pipeline.py       # no network required
-```
-
----
-
-*Data sourced from the U.S. Securities and Exchange Commission's EDGAR system
-(public domain). This tool is for research and educational use.*
+*Illustrative model built for learning and portfolio purposes. Not investment advice.*
