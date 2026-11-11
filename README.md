@@ -27,7 +27,7 @@ An illustrative five-year leveraged buyout of Restaurant Brands International, t
 
 - **MOIC:** 1.75x
 - **IRR (5-year):** 11.9%
-- **Exit multiple:** 12.0x (0.5x contraction from entry)
+- **Exit multiple:** 12.0x (1.0x contraction from entry)
 - **Deleveraging:** total debt / EBITDA falls from 6.0x at entry to about 3.0x by Year 5
 
 The sensitivity tables show how much the return depends on price: buying at 11.0x instead of 13.0x, with the same 12.0x exit, lifts the IRR to about 19%.
